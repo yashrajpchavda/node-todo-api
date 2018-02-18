@@ -156,30 +156,17 @@ app.post( "/users/login", ( req, res ) => {
       res.status( 400 ).send();
     } );
 
-  // find the user by the email
-  // User.findOne( { email: email } )
-  //   .then( ( user ) => {
-  //
-  //     if ( !user ) {
-  //       return res.status( 401 ).send();
-  //     }
-  //
-  //     bcrypt.compare( password, user.password, ( err, result ) => {
-  //
-  //       if ( result === true ) {
-  //         user.generateAuthToken().then( ( token ) => {
-  //           res.header( "x-auth", token ).send( user );
-  //         } );
-  //       } else {
-  //         res.status( 401 ).send();
-  //       }
-  //
-  //     } );
-  //
-  //   } )
-  //   .catch( ( err ) => {
-  //     res.status( 401 ).send();
-  //   } );
+} );
+
+app.delete( "/users/me/token", authenticate, ( req, res ) => {
+
+  req.user.removeToken( req.token )
+    .then( () => {
+      res.status( 200 ).send();
+    } )
+    .catch( () => {
+      res.status( 400 ).send();
+    } );
 
 } );
 
