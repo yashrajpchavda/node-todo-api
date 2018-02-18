@@ -4,11 +4,12 @@ const _ = require( "lodash" );
 const express = require( "express" );
 const bodyParser = require( "body-parser" );
 const { ObjectID } = require( "mongodb" );
+const bcrypt = require( "bcryptjs" );
 
 const { mongoose } = require( "./db/mongoose" );
 const { Todo } = require( "./models/todo" );
 const { User } = require( "./models/user" );
-const { authenticate } = require( './middleware/authenticate' );
+const { authenticate } = require( "./middleware/authenticate" );
 
 const app = express();
 
@@ -138,6 +139,47 @@ app.post( "/users", ( req, res ) => {
 app.get( "/users/me", authenticate, ( req, res ) => {
 
   res.send( req.user );
+
+} );
+
+app.post( "/users/login", ( req, res ) => {
+
+  const { email, password } = req.body;
+
+  User.findByCredentials( email, password )
+    .then( ( user ) => {
+      user.generateAuthToken().then( ( token ) => {
+        res.header( "x-auth", token ).send( user );
+      } );
+    } )
+    .catch( ( err ) => {
+      res.status( 400 ).send();
+    } );
+
+  // find the user by the email
+  // User.findOne( { email: email } )
+  //   .then( ( user ) => {
+  //
+  //     if ( !user ) {
+  //       return res.status( 401 ).send();
+  //     }
+  //
+  //     bcrypt.compare( password, user.password, ( err, result ) => {
+  //
+  //       if ( result === true ) {
+  //         user.generateAuthToken().then( ( token ) => {
+  //           res.header( "x-auth", token ).send( user );
+  //         } );
+  //       } else {
+  //         res.status( 401 ).send();
+  //       }
+  //
+  //     } );
+  //
+  //   } )
+  //   .catch( ( err ) => {
+  //     res.status( 401 ).send();
+  //   } );
 
 } );
 

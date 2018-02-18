@@ -216,3 +216,33 @@ describe( "GET /users/me", () => {
   } );
 
 } );
+
+describe( "POST /users", () => {
+
+  it( "should create a user", ( done ) => {
+
+    const email = "example@example.com";
+    const password = "123mnb!";
+
+    request( app )
+      .post( "/users" )
+      .send( { email, password } )
+      .expect( 200 )
+      .expect( ( res ) => {
+        expect( res.headers[ "x-auth" ] ).toExist();
+        expect( res.body._id ).toExist();
+        expect( res.body.email ).toBe( email );
+      } )
+      .end( done );
+
+  } );
+
+  // it( "should return validation errors if request invalid", ( done ) => {
+  //
+  // } );
+  //
+  // it( "should not create user if email in use", ( done ) => {
+  //
+  // } );
+
+} );
