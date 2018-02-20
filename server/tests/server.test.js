@@ -163,7 +163,7 @@ describe( "DELETE /todos/:id", () => {
 
         Todo.findById( todoId )
           .then( ( todo ) => {
-            expect( todo ).toExist();
+            expect( todo ).toBeTruthy();
             done();
           } )
           .catch( ( err ) => done( err ) );
@@ -209,8 +209,8 @@ describe( "PATCH /todos/:id", () => {
       .send( requestData )
       .expect( 200 )
       .expect( ( res ) => {
-        expect( res.body.todo ).toInclude( requestData );
-        expect( res.body.todo.completedAt ).toBeA( "number" );
+        expect( res.body.todo ).toMatchObject( requestData );
+        expect( typeof res.body.todo.completedAt ).toBe( "number" );
       } )
       .end( done );
 
@@ -241,8 +241,8 @@ describe( "PATCH /todos/:id", () => {
       .send( requestData )
       .expect( 200 )
       .expect( ( res ) => {
-        expect( res.body.todo ).toInclude( requestData );
-        expect( res.body.todo.completedAt ).toNotExist();
+        expect( res.body.todo ).toMatchObject( requestData );
+        expect( res.body.todo.completedAt ).toBeFalsy();
       } )
       .end( done );
 
@@ -288,8 +288,8 @@ describe( "POST /users", () => {
       .send( { email, password } )
       .expect( 200 )
       .expect( ( res ) => {
-        expect( res.headers[ "x-auth" ] ).toExist();
-        expect( res.body._id ).toExist();
+        expect( res.headers[ "x-auth" ] ).toBeTruthy();
+        expect( res.body._id ).toBeTruthy();
         expect( res.body.email ).toBe( email );
       } )
       .end( done );
