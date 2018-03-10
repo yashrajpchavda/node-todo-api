@@ -4,6 +4,7 @@ const { ObjectID } = require( "mongodb" );
 
 const { app } = require( "./../server" );
 const { Todo } = require( "./../models/todo" );
+const { User } = require( "./../models/user" );
 
 const { todos, populateTodos, users, populateUsers } = require( "./seed/seed" );
 
@@ -303,5 +304,64 @@ describe( "POST /users", () => {
   // it( "should not create user if email in use", ( done ) => {
   //
   // } );
+
+} );
+
+describe( "POST /users/login", () => {
+
+  it( "should authenticate the user if credentials are valid", ( done ) => {
+
+    const email = "yash@ab.com";
+    const password = "userOnePass";
+
+    request( app )
+      .post( "/users/login" )
+      .send( { email, password } )
+      .expect( 200 )
+      .expect( ( res ) => {
+        expect( res.headers[ "x-auth" ] ).toBeTruthy();
+        expect( res.body._id ).toBeTruthy();
+        expect( res.body.email ).toBe( email );
+      } )
+      .end( done );
+
+  } );
+
+  it( "should return 400 is the credentials are not valid", ( done ) => {
+
+    const email = "yash@ab.com";
+    const password = "wrongPass";
+
+    request( app )
+      .post( "/users/login" )
+      .send( { email, password } )
+      .expect( 400 )
+      .end( done );
+
+  } );
+
+} );
+
+describe( "DELETE /users/me/token", () => {
+
+  it( "should remove the user's token from the database and invalidate it", ( done ) => {
+
+    request( app )
+      .delete( "/users/me/token" )
+      .set( "x-auth", users[ 0 ].tokens[ 0 ].token )
+      .send()
+      .expect( 200 )
+      .end( ( res ) => {
+        // find the user by id
+        console.log( "inside expect" );
+        User.findById( users[ 0 ]._id ).then( ( res ) => {
+          expect( res.tokens.length ).toBe( 0 );
+          done();
+        } ).catch( ( err ) => {
+          console.log( err );
+        } );
+      } );
+
+  } );
 
 } );
