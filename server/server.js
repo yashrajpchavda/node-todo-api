@@ -17,129 +17,128 @@ const port = process.env.PORT;
 
 app.use( bodyParser.json() );
 
-app.post( "/todos", authenticate, ( req, res ) => {
+app.post( "/todos", authenticate, async ( req, res ) => {
 
-  let todo = new Todo( {
-    text: req.body.text,
-    _creator: req.user._id
-  } );
-
-  todo.save()
-    .then( ( doc ) => {
-      res.send( doc );
-    } )
-    .catch( ( err ) => {
-      res.status( 400 ).send( err );
+  try {
+    let todo = new Todo( {
+      text: req.body.text,
+      _creator: req.user._id
     } );
+
+    const doc = await todo.save();
+
+    res.send( doc );
+  } catch ( e ) {
+    res.status( 400 ).send( e );
+  }
 
 } );
 
-app.get( "/todos", authenticate, ( req, res ) => {
+app.get( "/todos", authenticate, async ( req, res ) => {
 
-  Todo.find( { _creator: req.user._id } )
-    .then( ( todos ) => {
-      res.send( { todos } );
-    } )
-    .catch( ( err ) => {
-      res.status( 400 ).send( err );
-    } );
+  try {
+    const todos = await Todo.find( { _creator: req.user._id } );
+    res.send( { todos } );
+  } catch ( e ) {
+    res.status( 400 ).send( err );
+  }
 
 } );
 
-app.get( "/todos/:id", authenticate, ( req, res ) => {
+app.get( "/todos/:id", authenticate, async ( req, res ) => {
 
-  const todoId = req.params.id;
+  try {
+    const todoId = req.params.id;
 
-  // validate the id
-  if ( !ObjectID.isValid( todoId ) ) {
-    return res.status( 404 ).send();
+    // validate the id
+    if ( !ObjectID.isValid( todoId ) ) {
+      return res.status( 404 ).send();
+    }
+
+    const todo = await Todo.findOne( {
+      _id: todoId,
+      _creator: req.user._id
+    } );
+
+    if ( !todo ) {
+      return res.status( 404 ).end();
+    }
+
+    return res.send( { todo } );
+  } catch ( e ) {
+    res.status( 400 ).send( e );
   }
-
-  Todo.findOne( {
-    _id: todoId,
-    _creator: req.user._id
-  } )
-    .then( ( todo ) => {
-
-      if ( !todo ) {
-        return res.status( 404 ).end();
-      }
-
-      return res.send( { todo } );
-    } )
-    .catch( ( e ) => res.status( 400 ).send( e ) );
 
 } );
 
-app.delete( "/todos/:id", authenticate, ( req, res ) => {
+app.delete( "/todos/:id", authenticate, async ( req, res ) => {
 
-  const todoId = req.params.id;
+  try {
+    const todoId = req.params.id;
 
-  if ( !ObjectID.isValid( todoId ) ) {
-    return res.status( 404 ).send();
-  }
+    if ( !ObjectID.isValid( todoId ) ) {
+      return res.status( 404 ).send();
+    }
 
-  Todo.findOneAndRemove( {
-    _id: todoId,
-    _creator: req.user._id
-  } )
-    .then( ( todo ) => {
-      if ( !todo ) {
-        return res.status( 404 ).send();
-      }
-      return res.send( { todo } );
-    } )
-    .catch( ( err ) => {
-      return res.status( 400 ).send();
+    const todo = await Todo.findOneAndRemove( {
+      _id: todoId,
+      _creator: req.user._id
     } );
+
+    if ( !todo ) {
+      return res.status( 404 ).send();
+    }
+
+    return res.send( { todo } );
+  } catch ( e ) {
+    return res.status( 400 ).send();
+  }
 
 } );
 
-app.patch( "/todos/:id", authenticate, ( req, res ) => {
+app.patch( "/todos/:id", authenticate, async ( req, res ) => {
 
-  const todoId = req.params.id;
-  const body = _.pick( req.body, [ "text", "completed" ] );
+  try {
+    const todoId = req.params.id;
+    const body = _.pick( req.body, [ "text", "completed" ] );
 
-  if ( !ObjectID.isValid( todoId ) ) {
-    return res.status( 404 ).send();
+    if ( !ObjectID.isValid( todoId ) ) {
+      return res.status( 404 ).send();
+    }
+
+    if ( _.isBoolean( body.completed ) && body.completed ) {
+      body.completedAt = new Date().getTime();
+    } else {
+      body.completed = false;
+      body.completedAt = null;
+    }
+
+    const todo = await Todo.findOneAndUpdate( { _id: todoId, _creator: req.user._id }, { $set: body }, { new: true } );
+
+    if ( !todo ) {
+      return res.status( 404 ).send();
+    }
+    res.send( { todo } );
+  } catch ( e ) {
+    res.status( 400 ).send( e );
   }
-
-  if ( _.isBoolean( body.completed ) && body.completed ) {
-    body.completedAt = new Date().getTime();
-  } else {
-    body.completed = false;
-    body.completedAt = null;
-  }
-
-  Todo.findOneAndUpdate( { _id: todoId, _creator: req.user._id }, { $set: body }, { new: true } )
-    .then( ( todo ) => {
-      if ( !todo ) {
-        return res.status( 404 ).send();
-      }
-      res.send( { todo } );
-    } )
-    .catch( ( err ) => {
-      res.status( 400 ).send( err );
-    } );
 
 } );
 
 // POST /users
-app.post( "/users", ( req, res ) => {
+app.post( "/users", async ( req, res ) => {
 
-  const body = _.pick( req.body, [ "email", "password" ] );
-  const user = new User( body );
+  try {
+    const body = _.pick( req.body, [ "email", "password" ] );
+    const user = new User( body );
 
-  user.save()
-    .then( () => {
-      return user.generateAuthToken();
-    } )
-    .then( ( token ) => {
-      res.header( "x-auth", token ).send( user );
-    } )
-    .catch( ( err ) => {
-      res.status( 400 ).send( err );
-    } );
+    await user.save();
+    const token = await user.generateAuthToken();
+
+    res.header( "x-auth", token ).send( user );
+  } catch ( e ) {
+    res.status( 400 ).send( err );
+  }
 
 } );
 
@@ -158,7 +157,7 @@ app.post( "/users/login", async ( req, res ) => {
     const token = await user.generateAuthToken();
 
     res.header( "x-auth", token ).send( user );
-  } catch( e ) {
+  } catch ( e ) {
     res.status( 400 ).send();
   }
 
@@ -169,7 +168,7 @@ app.delete( "/users/me/token", authenticate, async ( req, res ) => {
   try {
     await req.user.removeToken( req.token );
     res.status( 200 ).send();
-  } catch( e ) {
+  } catch ( e ) {
     res.status( 400 ).send();
   }
 
